@@ -1,0 +1,48 @@
+Nessa estrutura, foi definido um critério de prioridade, e os elementos que mais atendem esse critério são os primeiros a serem acessados em uma consulta à estrutura. Por exemplo, se for definida uma Fila de prioridade para valores inteiros, e que o critério é o menor valor, então o menor valor existente entre os elementos da Fila será o primeiro a ser acessado em uma consulta. Independentemente da sequência em que você realiza a inserção dos valores, o menor valor sempre será o primeiro a sair da Fila. Ou seja, o menor critério sempre fura para o começo da fila, porque tem a prioridade, captaram?
+A implementação desse tipo de estrutura exigiria que você tivesse estudado outras estruturas, como a heap… então essa parte eu vou abstrair. Tudo o que você precisa saber é que, numa Fila de prioridade eu sempre consigo pegar o menor elemento de acordo com o meu critério de forma imediata, ok?
+Com esses elementos em mente, o pseudocódigo do A* pode ser descrito como no código abaixo.
+
+Pseudocódigo do algoritmo A*
+
+Busca_A*(Grafo g, Vértice inicio, Vértice fim) {
+    Visitados = {} //Nenhum vértice foi visitado ainda
+    Abertos ={inicio} //Vértices na fila para exploração
+    custo[] // Vetor que representa os custos dos caminhos para cada
+    //vértice
+    anterior[] // Vetor que representa o vértice anterior no caminho
+    futuro[] //Vetor que representa o custo futuro do caminho
+
+    Enquanto Abertos não for vazio {
+        atual = vértice de Abertos que possui menor valor de caminho futuro
+        Se atual == fim
+        Retorne o caminho
+        Remove atual de Abertos
+        Insere atual em Visitados
+
+        Para cada vizinho de atual{
+            Se o vizinho não foi visitado {
+                Se ele não estiver em Abertos
+                Insere vizinho em Abertos
+                custo_vizinho = custo[atual] + g[atual, vizinho]
+
+                Se custo_vizinho < custo[vizinho] {
+                    anterior[vizinho] = atual
+                    custo[vizinho] = custo_vizinho
+                    futuro[vizinho] = custo[vizinho]+ HEURÍSTICA
+                }
+            }
+        }
+    }
+    Retorna ERRO
+}
+
+Lembrando: a posição do destino é (4,8) e a de partida do jogador é (4,1). Todas as contas de coordenadas são feitas da posição do vértice com a posição do destino, ok?
+Aqui serão dois conjuntos de valores calculados para cada um dos vértices: Denomine de C o valor do caminho percorrido até o vértice, e F o valor estimado do restante do caminho a partir do vértice. O custo de movimentação C é unitário, então você precisa fazer a conta do valor da heurística para somar com esses custos:
+F(4,1) = RAIZ_QUADRADA(0 + 49) + C(4,1) = 7 + 0 = 7
+F(3,1) = RAIZ_QUADRADA(1 + 49) + C(3,1) = 7.07 + 1 = 8.07
+F(3,2) = RAIZ_QUADRADA(1 + 36) + C(3,2) = 6.08 + 1 = 7.08
+F(4,2) = RAIZ_QUADRADA(0 + 36) + C(4,2) = 6 + 1 = 7
+F(5,1) = RAIZ_QUADRADA(1 + 49) + C(5,1) = 7.07 + 1 = 8.07
+F(5,2) = RAIZ_QUADRADA(1 + 36) + C(5,2) = 6.08 + 1 = 7.08
+Entendeu a ideia? Cada vértice vai ter duas informações: C e F.
+A partir desse ponto, escolhe-se sempre o vértice que tiver o menor F como o próximo a ser explorado. Em caso de empate, vai ser o primeiro que foi adicionado na fila.
