@@ -4,16 +4,26 @@ const startButton = document.getElementById("start-button");
 const restartButton = document.getElementById("restart-button");
 
 const gridData = [
-  ["p", "_", "_", "_", "_", "_", "_", "_", "B", "_"],
-  ["B", "_", "B", "_", "_", "B", "B", "_", "B", "_"],
-  ["_", "_", "_", "_", "_", "_", "_", "B", "B", "_"],
-  ["_", "_", "_", "B", "B", "_", "_", "_", "B", "_"],
-  ["_", "_", "_", "B", "_", "B", "B", "_", "B", "_"],
-  ["B", "B", "B", "_", "F", "_", "_", "_", "_", "B"],
-  ["_", "_", "_", "_", "B", "B", "B", "B", "_", "_"],
-  ["B", "_", "_", "_", "_", "_", "_", "_", "_", "B"],
+  ["p", "_", "_", "B", "B", "B", "B", "B", "B", "_"],
+  ["B", "_", "B", "_", "_", "B", "_", "B", "B", "_"],
+  ["_", "_", "_", "_", "_", "_", "I", "_", "B", "_"],
+  ["_", "B", "_", "B", "B", "_", "_", "I", "B", "_"],
+  ["_", "_", "_", "B", "_", "B", "_", "_", "_", "_"],
+  ["B", "B", "B", "_", "F", "_", "_", "_", "I", "B"],
+  ["_", "_", "_", "I", "B", "B", "B", "B", "_", "_"],
+  ["B", "I", "_", "_", "_", "_", "_", "_", "_", "B"],
   ["_", "B", "_", "_", "_", "B", "_", "B", "B", "_"],
-  ["B", "_", "B", "_", "B", "_", "_", "_", "_", "o"],
+  ["I", "_", "B", "_", "B", "_", "_", "_", "_", "o"],
+];
+
+const enemies = [
+  { x: 9, y: 0, direction: "up" },
+  { x: 2, y: 6, direction: "up" },
+  { x: 3, y: 7, direction: "down" },
+  { x: 5, y: 8, direction: "up" },
+  { x: 6, y: 3, direction: "down" },
+  { x: 7, y: 1, direction: "up" },
+  // { x: 9, y: 6, direction: "up" },
 ];
 
 function createGrid(grid) {
@@ -38,49 +48,86 @@ createGrid(gridData);
 let x = 0; // Posição inicial do personagem
 let y = 0;
 let hasFruitPower = false; // Estado para saber se o personagem já pegou a fruta
+let oldCena = "_";
 
 function move(cena, movimento) {
-  if (movimento === "baixo") {
-    console.log("baixo");
-    if (x + 1 >= cena.length || (!hasFruitPower && cena[x + 1][y] === "B"))
-      return false;
-    let r = handleBarrierCrossing(cena, x + 1, y);
-    // cena[x][y] = "x";
-    cena[x + 1][y] = "p";
-    r ? cena[r[0]][r[1]] = "b" : null;
-    x += 1;
-  } else if (movimento === "cima") {
-    console.log("cima");
-    if (x - 1 < 0 || (!hasFruitPower && cena[x - 1][y] === "B")) return false;
-    let r = handleBarrierCrossing(cena, x - 1, y);
-    // cena[x][y] = "x";
-    cena[x - 1][y] = "p";
-    r ? cena[r[0]][r[1]] = "b" : null;
-    x -= 1;
-  } else if (movimento === "esquerda") {
-    console.log("esquerda");
-    if (y - 1 < 0 || (!hasFruitPower && cena[x][y - 1] === "B")) return false;
-    let r = handleBarrierCrossing(cena, x, y - 1);
-    // cena[x][y] = "x";
-    cena[x][y - 1] = "p";
-    r ? cena[r[0]][r[1]] = "b" : null;
-    y -= 1;
-  } else if (movimento === "direita") {
-    console.log("direita");
-    if (y + 1 >= cena[0].length || (!hasFruitPower && cena[x][y + 1] === "B"))
-      return false;
-    let r = handleBarrierCrossing(cena, x, y + 1);
-    // cena[x][y] = "x";
-    cena[x][y + 1] = "p";
-    r ? cena[r[0]][r[1]] = "b" : null;
-    y += 1;
+  let newX = x;
+  let newY = y;
+
+  cena[x][y] = oldCena;
+
+  if (movimento === "baixo") newX += 1;
+  else if (movimento === "cima") newX -= 1;
+  else if (movimento === "esquerda") newY -= 1;
+  else if (movimento === "direita") newY += 1;
+
+  if (
+    newX < 0 ||
+    newX >= cena.length ||
+    newY < 0 ||
+    newY >= cena[0].length ||
+    (!hasFruitPower && cena[newX][newY] === "B")
+  )
+    return false;
+
+  if (cena[newX][newY] === "I") {
+    showMessage("Você foi capturado!");
+    return false;
   }
+
+  let r = handleBarrierCrossing(cena, newX, newY);
+  oldCena = cena[newX][newY];
+
+  cena[newX][newY] = "p";
+  r ? (cena[r[0]][r[1]] = "b") : null;
+  x = newX;
+  y = newY;
+
   return true;
+}
+
+function moveEnemies(grid) {
+  enemies.forEach((enemy) => {
+    const { x, y, direction } = enemy;
+
+    // Remove o inimigo da posição atual
+    if (x >= 0 && x < grid.length && y >= 0 && y < grid[0].length) {
+      grid[x][y] = "_";
+    }
+
+    // Movimenta o inimigo para cima ou para baixo apenas um passo por ciclo de movimento
+    if (direction === "up") {
+      if (x - 1 >= 0 && grid[x - 1][y] !== "B") {
+        enemy.x -= 1;
+        enemy.direction = "down"; // Muda direção para baixo após um movimento para cima
+      }
+    } else if (direction === "down") {
+      if (x + 1 < grid.length && grid[x + 1][y] !== "B") {
+        enemy.x += 1;
+        enemy.direction = "up"; // Muda direção para cima após um movimento para baixo
+      }
+    }
+
+    // Verifica colisão com o personagem
+    if (enemy.x === x && enemy.y === y) {
+      showMessage("Você foi capturado!");
+    }
+
+    // Adiciona o inimigo na nova posição, verificando se está dentro dos limites
+    if (
+      enemy.x >= 0 &&
+      enemy.x < grid.length &&
+      enemy.y >= 0 &&
+      enemy.y < grid[0].length
+    ) {
+      grid[enemy.x][enemy.y] = "I";
+    }
+  });
 }
 
 function handleBarrierCrossing(cena, newX, newY) {
   if (cena[newX][newY] === "B" && hasFruitPower) {
-    return [newX, newY];    
+    return [newX, newY];
   }
   return false;
 }
@@ -108,10 +155,39 @@ function copia(m) {
 
 async function executeMoves(moves, interval, cena) {
   for (const moveFunc of moves) {
+    moveEnemies(cena);
     moveFunc(cena);
     createGrid(cena);
     await new Promise((resolve) => setTimeout(resolve, interval));
   }
+}
+
+function predictEnemyPosition(enemy, steps) {
+  const futurePosition = { ...enemy };
+  for (let i = 0; i < steps; i++) {
+    if (futurePosition.direction === "up") {
+      if (
+        futurePosition.x > 0 &&
+        gridData[futurePosition.x - 1][futurePosition.y] !== "B"
+      ) {
+        futurePosition.x -= 1;
+      } else {
+        futurePosition.direction = "down";
+        futurePosition.x += 1;
+      }
+    } else if (futurePosition.direction === "down") {
+      if (
+        futurePosition.x < gridData.length - 1 &&
+        gridData[futurePosition.x + 1][futurePosition.y] !== "B"
+      ) {
+        futurePosition.x += 1;
+      } else {
+        futurePosition.direction = "up";
+        futurePosition.x -= 1;
+      }
+    }
+  }
+  return futurePosition;
 }
 
 function euclideanDistance(x1, y1, x2, y2) {
@@ -161,7 +237,11 @@ function aStar(grid, start, end, allowBarrierPass) {
         continue;
       }
 
-      if (grid[neighbor[0]][neighbor[1]] === "B" && !allowBarrierPass) {
+      if (
+        grid[neighbor[0]][neighbor[1]] === "B" &&
+        !allowBarrierPass &&
+        grid[neighbor[0]][neighbor[1]] !== "F"
+      ) {
         continue;
       }
 
@@ -293,12 +373,6 @@ async function startGame() {
           px > x ? "baixo" : px < x ? "cima" : py > y ? "direita" : "esquerda"
         );
       await executeMoves([moveFunc], 500, cenaCopia);
-      // console.log("x ", px, "y ", py);
-      // console.log("IF ", cenaCopia[px][py]);
-      // if (cenaCopia[px][py] === "F") {
-      //   console.log("Pegou a fruta! ", hasFruitPower);
-      //   hasFruitPower = true; // Ativa o poder da fruta
-      // }
       x = px;
       y = py;
     }
@@ -316,3 +390,13 @@ restartButton.addEventListener("click", () => {
   hasFruitPower = false;
   createGrid(gridData);
 });
+
+function showMessage(message) {
+  const messageDiv = document.createElement("div");
+  messageDiv.classList.add("message");
+  messageDiv.textContent = message;
+  document.body.appendChild(messageDiv);
+  setTimeout(() => {
+    messageDiv.remove();
+  }, 2000);
+}
